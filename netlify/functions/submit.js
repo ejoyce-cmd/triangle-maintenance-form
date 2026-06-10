@@ -1,6 +1,4 @@
 // netlify/functions/submit.js
-// Creates a new item on the TReno maintenance Monday.com board
-
 const MONDAY_API_KEY = process.env.MONDAY_API_KEY;
 const BOARD_ID = '5979872405';
 
@@ -19,15 +17,13 @@ exports.handler = async (event) => {
   const {
     address, techName, visitType, date,
     diagnosticActions, proposedSolution,
-    materialsText, materialsTotal, laborHours, laborCost, grandTotal,
+    materialsText, materialsTotal, laborHours, grandTotal,
     completionNotes,
   } = data;
 
-  // Item name: address + technician
   const itemName = `${address} - ${techName}`;
 
-  // Build column values
-  // Query the board columns first to get IDs, then map by title
+  // Fetch board columns to get IDs and types
   let boardColumns;
   try {
     const colResp = await fetch('https://api.monday.com/v2', {
@@ -47,80 +43,53 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: `Failed to fetch board columns: ${err.message}` };
   }
 
-  // Helper: find column ID by partial title match
-  function colId(titleFragment) {
+  const columnValues = {};
+
+  // Set a column value based on its type
+  function setCol(titleFragment, value) {
+    if (value == null || value === '' || value === undefined) return;
     const col = boardColumns.find(c =>
       c.title.toLowerCase().includes(titleFragment.toLowerCase())
     );
-    return col ? col.id : null;
+    if (!col) return;
+
+    if (col.type === 'numeric') {
+      columnValues[col.id] = String(value);
+    } else if (col.type === 'long_text') {
+      columnValues[col.id] = { text: String(value) };
+    } else if (col.type === 'text') {
+      columnValues[col.id] = String(value);
+    } else if (col.type === 'color') {
+      columnValues[col.id] = { label: String(value) };
+    } else if (col.type === 'dropdown') {
+      columnValues[col.id] = { labels: [String(value)] };
+    } else if (col.type === 'date') {
+      const d = new Date(value);
+      columnValues[col.id] = { date: d.toISOString().split('T')[0] };
+    } else {
+      columnValues[col.id] = String(value);
+    }
   }
 
-  // Build column values JSON
-  const columnValues = {};
+  setCol('visit type', visitType);
+  setCol('diagnostic', diagnosticActions);
+  setCol('proposed solution', proposedSolution);
+  setCol('materials list', materialsText);
+  setCol('materials (dollar', materialsTotal);
+  setCol('labor (hour', laborHours);
+  setCol('total cost', grandTotal);
+  setCol('completion note', completionNotes);
+  setCol('maintenance item', `${address} - ${techName}`);
 
-  // Visit Type (status or dropdown column)
-  const visitTypeCol = colId('visit type');
-  if (visitTypeCol && visitType) {
-    columnValues[visitTypeCol] = { label: visitType };
-  }
-
-  // Diagnostic Actions (long text)
-  const diagCol = colId('diagnostic');
-  if (diagCol && diagnosticActions) {
-    columnValues[diagCol] = { text: diagnosticActions };
-  }
-
-  // Proposed Solution (long text)
-  const propCol = colId('proposed solution');
-  if (propCol && proposedSolution) {
-    columnValues[propCol] = { text: proposedSolution };
-  }
-
-  // Materials List and Cost (long text)
-  const matListCol = colId('materials list');
-  if (matListCol && materialsText) {
-    columnValues[matListCol] = { text: materialsText };
-  }
-
-  // Materials (Dollars) — numeric
-  const matDollarCol = colId('materials (dollar') || colId('materials (dollar');
-  if (matDollarCol && materialsTotal != null) {
-    columnValues[matDollarCol] = { number: materialsTotal };
-  }
-
-  // Labor (Hours) — numeric
-  const laborHoursCol = colId('labor (hour') || colId('labor');
-  if (laborHoursCol && laborHours != null) {
-    columnValues[laborHoursCol] = { number: laborHours };
-  }
-
-  // Total Cost
-  const totalCostCol = colId('total cost');
-  if (totalCostCol && grandTotal != null) {
-    columnValues[totalCostCol] = { number: grandTotal };
-  }
-
-  // Completion Notes
-  const completionCol = colId('completion note');
-  if (completionCol && completionNotes) {
-    columnValues[completionCol] = { text: completionNotes };
-  }
-
-  // Date Received — use submission date
-  const dateReceivedCol = colId('date received') || colId('date');
-  if (dateReceivedCol && date) {
+  // Date Received
+  const dateCol = boardColumns.find(c =>
+    c.title.toLowerCase().includes('date received') || c.title.toLowerCase() === 'date'
+  );
+  if (dateCol && date) {
     const d = new Date(date);
-    const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
-    columnValues[dateReceivedCol] = { date: dateStr };
+    columnValues[dateCol.id] = { date: d.toISOString().split('T')[0] };
   }
 
-  // Technician — put in Maintenance Item or a text column if available
-  const maintItemCol = colId('maintenance item');
-  if (maintItemCol) {
-    columnValues[maintItemCol] = { text: `${address} - ${techName}` };
-  }
-
-  // Escape column values for GraphQL
   const colValStr = JSON.stringify(JSON.stringify(columnValues));
 
   const mutation = `
