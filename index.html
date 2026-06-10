@@ -1123,21 +1123,26 @@ async function createMondayItem(data) {
 }
 
 async function uploadFilesToMonday(itemId, files, type) {
-  const formData = new FormData();
-  formData.append('itemId', itemId);
-  formData.append('type', type);
-  files.forEach((entry, i) => {
-    formData.append(`file_${i}`, entry.file, entry.file.name);
-  });
+  const encoded = await Promise.all(files.map(async (entry) => {
+    const file = entry.file;
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    return { name: file.name, mimetype: file.type || 'application/octet-stream', data: base64 };
+  }));
 
   const resp = await fetch('/.netlify/functions/upload', {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId, type, files: encoded }),
   });
 
   if (!resp.ok) {
     const text = await resp.text();
-    throw new Error(`Upload error: ${text}`);
+    throw new Error('Upload error: ' + text);
   }
   return resp.json();
 }
