@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TReno WO Update</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    color: #e2e8f0;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .header {
+    background: #1a2744;
+    border-radius: 12px 12px 0 0;
+    padding: 28px 32px 24px;
+    border-bottom: 3px solid #2d4a8a;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+  }
+
+  .header p {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+
+  .form-body {
+    background: #1e2535;
+    padding: 32px;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .field {
+    margin-bottom: 24px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+  }
+
+  label .required {
+    color: #f87171;
+    margin-left: 3px;
+  }
+
+  label .hint {
+    font-weight: 400;
+    color: #64748b;
+    font-size: 12px;
+    margin-left: 6px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  input[type="datetime-local"]:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  }
+
+  input.error, textarea.error, select.error {
+    border-color: #f87171;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+  }
+
+  .char-count {
+    text-align: right;
+    font-size: 11px;
+    color: #475569;
+    margin-top: 4px;
+  }
+
+  /* Select wrapper for arrow */
+  .select-wrapper {
+    position: relative;
+  }
+  .select-wrapper::after {
+    content: '▾';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    pointer-events: none;
+    font-size: 14px;
+  }
+
+  /* Two column row */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Section divider */
+  .section-divider {
+    border: none;
+    border-top: 1px solid #2d3748;
+    margin: 28px 0;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #3b82f6;
+    margin-bottom: 20px;
+  }
+
+  /* Materials table */
+  .materials-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+  }
+
+  .materials-table th {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0 8px 8px 0;
+    text-align: left;
+    border-bottom: 1px solid #2d3748;
+  }
+
+  .materials-table th:last-child { padding-right: 0; }
+
+  .materials-table td {
+    padding: 6px 8px 6px 0;
+    vertical-align: middle;
+  }
+
+  .materials-table td:last-child { padding-right: 0; }
+
+  .materials-table input,
+  .materials-table select {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .materials-table .col-desc { width: 35%; }
+  .materials-table .col-qty  { width: 12%; }
+  .materials-table .col-unit { width: 15%; }
+  .materials-table .col-price { width: 16%; }
+  .materials-table .col-total { width: 14%; }
+  .materials-table .col-del  { width: 8%; }
+
+  .line-total {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 8px 0;
+    pointer-events: none;
+  }
+
+  .btn-add-line {
+    background: transparent;
+    border: 1px dashed #2d4a8a;
+    color: #3b82f6;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+    transition: all 0.15s;
+  }
+  .btn-add-line:hover { background: rgba(59,130,246,0.08); border-color: #3b82f6; }
+
+  .btn-del-line {
+    background: transparent;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .btn-del-line:hover { color: #f87171; }
+
+  /* Totals bar */
+  .totals-bar {
+    background: #0f1117;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 16px;
+  }
+
+  .totals-bar .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  .totals-bar .row.grand {
+    border-top: 1px solid #2d3748;
+    margin-top: 6px;
+    padding-top: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .totals-bar .amount { font-variant-numeric: tabular-nums; }
+
+  /* Labor */
+  .labor-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 140px;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .labor-derived {
+    background: #0f1117;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: #94a3b8;
+    font-size: 14px;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Photo/doc upload */
+  .upload-zone {
+    border: 2px dashed #2d3748;
+    border-radius: 8px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: #3b82f6;
+    background: rgba(59,130,246,0.05);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+  }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 13px; color: #64748b; }
+  .upload-zone p span { color: #3b82f6; text-decoration: underline; cursor: pointer; }
+
+  .file-list {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .file-chip {
+    background: #0f1117;
+    border: 1px solid #2d3748;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 200px;
+  }
+
+  .file-chip .file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-chip .remove-file {
+    cursor: pointer;
+    color: #475569;
+    font-size: 14px;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #475569;
+    padding: 0;
+    line-height: 1;
+  }
+  .file-chip .remove-file:hover { color: #f87171; }
+
+  /* Image preview */
+  .image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .image-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #2d3748;
+  }
+
+  .image-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .image-thumb .remove-img {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Error message */
+  .error-msg {
+    font-size: 12px;
+    color: #f87171;
+    margin-top: 5px;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Submit area */
+  .submit-area {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn-submit {
+    background: #2d4a8a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  .btn-submit:hover { background: #3b5fa8; }
+  .btn-submit:disabled { background: #2d3748; color: #64748b; cursor: not-allowed; }
+
+  /* Status */
+  .status-bar {
+    background: #0f1117;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #94a3b8;
+    display: none;
+  }
+  .status-bar.visible { display: block; }
+  .status-bar.success { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.08); }
+  .status-bar.error { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
+
+  .status-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+  }
+  .status-step .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #2d3748;
+    flex-shrink: 0;
+  }
+  .status-step.done .dot { background: #22c55e; }
+  .status-step.active .dot { background: #3b82f6; animation: pulse 1s infinite; }
+  .status-step.failed .dot { background: #f87171; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Hidden sections */
+  .conditional-section { display: none; }
+  .conditional-section.visible { display: block; }
+
+  @media (max-width: 520px) {
+    .form-body { padding: 24px 20px; }
+    .two-col { grid-template-columns: 1fr; }
+    .labor-row { grid-template-columns: 1fr 1fr; }
+    .labor-row > *:first-child { grid-column: 1 / -1; }
+    .materials-table .col-desc { width: 30%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>TReno WO Update</h1>
+    <p>Triangle Renovations · Field Technician Form</p>
+  </div>
+
+  <div class="form-body">
+
+    <!-- DATE + IDENTITY -->
+    <div class="field">
+      <label>Date &amp; Time</label>
+      <input type="datetime-local" id="date" />
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Property Address <span class="required">*</span></label>
+        <input type="text" id="address" placeholder="123 Main St, City, ST 00000" />
+        <div class="error-msg" id="err-address">Property address is required.</div>
+      </div>
+      <div class="field">
+        <label>Technician Name <span class="required">*</span></label>
+        <input type="text" id="techName" placeholder="First Last" />
+        <div class="error-msg" id="err-techName">Technician name is required.</div>
+      </div>
+    </div>
+
+    <!-- VISIT TYPE -->
+    <div class="field">
+      <label>Visit Type <span class="required">*</span></label>
+      <div class="select-wrapper">
+        <select id="visitType" onchange="handleVisitType()">
+          <option value="">— Select —</option>
+          <option value="Estimate">Estimate</option>
+          <option value="Completed on Initial Visit (Under NTE)">Completed on Initial Visit (Under NTE)</option>
+          <option value="Completed After Estimate Approved">Completed After Estimate Approved</option>
+        </select>
+      </div>
+      <div class="error-msg" id="err-visitType">Visit type is required.</div>
+    </div>
+
+    <!-- ESTIMATE / INITIAL VISIT FIELDS -->
+    <div class="conditional-section" id="section-estimate">
+      <hr class="section-divider">
+      <div class="section-label">Assessment</div>
+
+      <div class="field">
+        <label>Diagnostic Actions</label>
+        <textarea id="diagnosticActions" maxlength="2000" oninput="updateCount(this,'count-diag')" placeholder="Describe what you found on site…"></textarea>
+        <div class="char-count"><span id="count-diag">0</span>/2000</div>
+      </div>
+
+      <div class="field">
+        <label>Proposed Solution</label>
+        <textarea id="proposedSolution" maxlength="2000" oninput="updateCount(this,'count-prop')" placeholder="Describe the recommended fix…"></textarea>
+        <div class="char-count"><span id="count-prop">0</span>/2000</div>
+      </div>
+
+      <hr class="section-divider">
+      <div class="section-label">Materials</div>
+
+      <table class="materials-table" id="materialsTable">
+        <thead>
+          <tr>
+            <th class="col-desc">Description</th>
+            <th class="col-qty">Qty</th>
+            <th class="col-unit">Unit</th>
+            <th class="col-price">Unit Price</th>
+            <th class="col-total">Total</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="materialsBody">
+        </tbody>
+      </table>
+      <button class="btn-add-line" type="button" onclick="addMaterialLine()">+ Add Line Item</button>
+
+      <hr class="section-divider">
+      <div class="section-label">Labor</div>
+
+      <div class="labor-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Labor Description <span class="hint">(optional)</span></label>
+          <input type="text" id="laborDesc" placeholder="e.g. Install, repair, demo…" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Hours</label>
+          <input type="number" id="laborHours" min="0" step="0.25" placeholder="0" oninput="recalcTotals()" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Labor Cost <span class="hint">@ $50/hr</span></label>
+          <div class="labor-derived" id="laborCost">$0.00</div>
+        </div>
+      </div>
+
+      <!-- TOTALS -->
+      <div class="totals-bar">
+        <div class="row"><span>Materials Subtotal</span><span class="amount" id="total-materials">$0.00</span></div>
+        <div class="row"><span>Labor Subtotal</span><span class="amount" id="total-labor">$0.00</span></div>
+        <div class="row grand"><span>Total Cost</span><span class="amount" id="total-grand">$0.00</span></div>
+      </div>
+    </div>
+
+    <!-- COMPLETION NOTES — shown for Initial Visit and Completed After Approved -->
+    <div class="conditional-section" id="section-completion">
+      <hr class="section-divider">
+      <div class="section-label">Completion</div>
+      <div class="field">
+        <label>Completion Notes</label>
+        <textarea id="completionNotes" maxlength="2000" oninput="updateCount(this,'count-comp')" placeholder="Describe work completed…"></textarea>
+        <div class="char-count"><span id="count-comp">0</span>/2000</div>
+      </div>
+    </div>
+
+    <!-- PHOTOS + DOCS — always shown once visit type selected -->
+    <div class="conditional-section" id="section-files">
+      <hr class="section-divider">
+      <div class="section-label">Photos &amp; Documents</div>
+      <div class="field">
+        <label>Attach Files <span class="hint">Images, PDFs, Word docs accepted</span></label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" onchange="handleFiles(this.files)" />
+          <div class="upload-icon">📎</div>
+          <p><span>Choose files</span> or drag and drop here</p>
+          <p style="margin-top:4px;font-size:12px;">Images, PDF, Word · No size limit</p>
+        </div>
+        <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        <div class="file-list" id="docFileList"></div>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-area">
+      <button class="btn-submit" id="btnSubmit" onclick="submitForm()">Submit Work Order</button>
+      <div class="status-bar" id="statusBar">
+        <div class="status-step" id="step-monday"><span class="dot"></span><span>Creating Monday.com item…</span></div>
+        <div class="status-step" id="step-pdf"><span class="dot"></span><span>Generating PDF…</span></div>
+        <div class="status-step" id="step-photos"><span class="dot"></span><span>Uploading photos &amp; documents…</span></div>
+      </div>
+    </div>
+
+  </div><!-- /form-body -->
+</div><!-- /container -->
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────
+let attachedFiles = []; // { file, type: 'image'|'doc', previewUrl? }
+const LABOR_RATE = 50;
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  document.getElementById('date').value = local.toISOString().slice(0,16);
+  addMaterialLine();
+  setupDragDrop();
+});
+
+// ─── VISIT TYPE CONDITIONAL LOGIC ─────────────────────────────────────
+function handleVisitType() {
+  const v = document.getElementById('visitType').value;
+  const secEstimate   = document.getElementById('section-estimate');
+  const secCompletion = document.getElementById('section-completion');
+  const secFiles      = document.getElementById('section-files');
+
+  secEstimate.classList.remove('visible');
+  secCompletion.classList.remove('visible');
+  secFiles.classList.remove('visible');
+
+  if (!v) return;
+
+  secFiles.classList.add('visible');
+
+  if (v === 'Estimate') {
+    secEstimate.classList.add('visible');
+  } else if (v === 'Completed on Initial Visit (Under NTE)') {
+    secEstimate.classList.add('visible');
+    secCompletion.classList.add('visible');
+  } else if (v === 'Completed After Estimate Approved') {
+    secCompletion.classList.add('visible');
+  }
+}
+
+// ─── CHAR COUNT ───────────────────────────────────────────────────────
+function updateCount(el, countId) {
+  document.getElementById(countId).textContent = el.value.length;
+}
+
+// ─── MATERIALS ────────────────────────────────────────────────────────
+let lineId = 0;
+
+function addMaterialLine() {
+  const id = ++lineId;
+  const tbody = document.getElementById('materialsBody');
+  const tr = document.createElement('tr');
+  tr.id = `line-${id}`;
+  tr.innerHTML = `
+    <td class="col-desc"><input type="text" placeholder="Description" oninput="recalcTotals()" /></td>
+    <td class="col-qty"><input type="number" min="0" step="any" placeholder="0" oninput="recalcLine(${id})" /></td>
+    <td class="col-unit">
+      <div class="select-wrapper">
+        <select onchange="recalcLine(${id})">
+          <option value="EA">EA</option>
+          <option value="SqFt">SqFt</option>
+          <option value="LF">LF</option>
+          <option value="LB">LB</option>
+          <option value="LS">LS</option>
+        </select>
+      </div>
+    </td>
+    <td class="col-price"><input type="number" min="0" step="0.01" placeholder="0.00" oninput="recalcLine(${id})" /></td>
+    <td class="col-total"><div class="line-total" id="lt-${id}">$0.00</div></td>
+    <td class="col-del"><button class="btn-del-line" type="button" onclick="removeLine(${id})" title="Remove">×</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeLine(id) {
+  const row = document.getElementById(`line-${id}`);
+  if (row) row.remove();
+  recalcTotals();
+}
+
+function recalcLine(id) {
+  const row = document.getElementById(`line-${id}`);
+  if (!row) return;
+  const inputs = row.querySelectorAll('input[type="number"]');
+  const qty   = parseFloat(inputs[0].value) || 0;
+  const price = parseFloat(inputs[1].value) || 0;
+  const total = qty * price;
+  document.getElementById(`lt-${id}`).textContent = formatMoney(total);
+  recalcTotals();
+}
+
+function recalcTotals() {
+  // Materials total
+  let matTotal = 0;
+  document.querySelectorAll('[id^="lt-"]').forEach(el => {
+    matTotal += parseMoney(el.textContent);
+  });
+
+  // Labor total
+  const hours = parseFloat(document.getElementById('laborHours').value) || 0;
+  const laborTotal = hours * LABOR_RATE;
+  document.getElementById('laborCost').textContent = formatMoney(laborTotal);
+
+  const grand = matTotal + laborTotal;
+  document.getElementById('total-materials').textContent = formatMoney(matTotal);
+  document.getElementById('total-labor').textContent = formatMoney(laborTotal);
+  document.getElementById('total-grand').textContent = formatMoney(grand);
+}
+
+function formatMoney(n) {
+  return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function parseMoney(s) {
+  return parseFloat(s.replace(/[$,]/g, '')) || 0;
+}
+
+// ─── FILE HANDLING ────────────────────────────────────────────────────
+function setupDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    const isImage = file.type.startsWith('image/');
+    const entry = { file, type: isImage ? 'image' : 'doc' };
+    if (isImage) {
+      entry.previewUrl = URL.createObjectURL(file);
+    }
+    attachedFiles.push(entry);
+  });
+  renderFilePreviews();
+  // Reset input so same file can be re-added
+  document.getElementById('fileInput').value = '';
+}
+
+function removeFile(idx) {
+  if (attachedFiles[idx] && attachedFiles[idx].previewUrl) {
+    URL.revokeObjectURL(attachedFiles[idx].previewUrl);
+  }
+  attachedFiles.splice(idx, 1);
+  renderFilePreviews();
+}
+
+function renderFilePreviews() {
+  const imgGrid = document.getElementById('imagePreviewGrid');
+  const docList = document.getElementById('docFileList');
+  imgGrid.innerHTML = '';
+  docList.innerHTML = '';
+
+  attachedFiles.forEach((entry, idx) => {
+    if (entry.type === 'image') {
+      const div = document.createElement('div');
+      div.className = 'image-thumb';
+      div.innerHTML = `
+        <img src="${entry.previewUrl}" alt="${entry.file.name}" />
+        <button class="remove-img" onclick="removeFile(${idx})" title="Remove">×</button>
+      `;
+      imgGrid.appendChild(div);
+    } else {
+      const div = document.createElement('div');
+      div.className = 'file-chip';
+      div.innerHTML = `
+        <span>📄</span>
+        <span class="file-name" title="${entry.file.name}">${entry.file.name}</span>
+        <button class="remove-file" onclick="removeFile(${idx})">×</button>
+      `;
+      docList.appendChild(div);
+    }
+  });
+}
+
+// ─── VALIDATION ───────────────────────────────────────────────────────
+function validate() {
+  let ok = true;
+
+  const fields = [
+    { id: 'address',   errId: 'err-address' },
+    { id: 'techName',  errId: 'err-techName' },
+    { id: 'visitType', errId: 'err-visitType' },
+  ];
+
+  fields.forEach(({ id, errId }) => {
+    const el = document.getElementById(id);
+    const err = document.getElementById(errId);
+    if (!el.value.trim()) {
+      el.classList.add('error');
+      err.classList.add('visible');
+      ok = false;
+    } else {
+      el.classList.remove('error');
+      err.classList.remove('visible');
+    }
+  });
+
+  return ok;
+}
+
+// ─── COLLECT FORM DATA ────────────────────────────────────────────────
+function collectData() {
+  const visitType = document.getElementById('visitType').value;
+  const isEstimate  = visitType === 'Estimate' || visitType === 'Completed on Initial Visit (Under NTE)';
+  const isCompleted = visitType === 'Completed on Initial Visit (Under NTE)' || visitType === 'Completed After Estimate Approved';
+
+  const data = {
+    date:       document.getElementById('date').value,
+    address:    document.getElementById('address').value.trim(),
+    techName:   document.getElementById('techName').value.trim(),
+    visitType,
+  };
+
+  if (isEstimate) {
+    data.diagnosticActions = document.getElementById('diagnosticActions').value.trim();
+    data.proposedSolution  = document.getElementById('proposedSolution').value.trim();
+    data.laborDesc  = document.getElementById('laborDesc').value.trim();
+    data.laborHours = parseFloat(document.getElementById('laborHours').value) || 0;
+    data.laborCost  = data.laborHours * LABOR_RATE;
+
+    // Materials lines
+    data.materials = [];
+    document.querySelectorAll('#materialsBody tr').forEach(row => {
+      const inputs  = row.querySelectorAll('input');
+      const sel     = row.querySelector('select');
+      const desc    = inputs[0]?.value.trim();
+      const qty     = parseFloat(inputs[1]?.value) || 0;
+      const unit    = sel?.value || '';
+      const price   = parseFloat(inputs[2]?.value) || 0;
+      const total   = qty * price;
+      if (desc || qty || price) {
+        data.materials.push({ desc, qty, unit, price, total });
+      }
+    });
+
+    data.materialsTotal = data.materials.reduce((s, r) => s + r.total, 0);
+    data.grandTotal = data.materialsTotal + data.laborCost;
+  }
+
+  if (isCompleted) {
+    data.completionNotes = document.getElementById('completionNotes').value.trim();
+  }
+
+  return data;
+}
+
+// ─── PDF GENERATION ───────────────────────────────────────────────────
+async function generatePDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+
+  const margin = 50;
+  const pageW  = doc.internal.pageSize.getWidth();
+  let y = margin;
+
+  const navy = [26, 39, 68];
+  const white = [255, 255, 255];
+  const light = [240, 244, 250];
+  const muted = [100, 116, 139];
+  const dark  = [15, 17, 23];
+
+  // Header bar
+  doc.setFillColor(...navy);
+  doc.rect(0, 0, pageW, 60, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(...white);
+  doc.text('TReno WO Update', margin, 38);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(180, 195, 220);
+  doc.text('Triangle Renovations · Field Technician Report', margin, 52);
+  y = 80;
+
+  // Meta block
+  doc.setFontSize(9);
+  doc.setTextColor(...muted);
+  const dateStr = data.date ? new Date(data.date).toLocaleString() : '—';
+  doc.text(`Date: ${dateStr}`, margin, y);
+  doc.text(`Technician: ${data.techName}`, pageW / 2, y);
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...dark);
+  doc.text(data.address, margin, y);
+  y += 10;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...muted);
+  doc.text(`Visit Type: ${data.visitType}`, margin, y);
+  y += 20;
+
+  // Divider
+  doc.setDrawColor(200, 210, 230);
+  doc.line(margin, y, pageW - margin, y);
+  y += 16;
+
+  function sectionHeader(title) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(59, 130, 246);
+    doc.text(title.toUpperCase(), margin, y);
+    y += 12;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...dark);
+    doc.setFontSize(10);
+  }
+
+  function textBlock(label, value) {
+    if (!value) return;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...muted);
+    doc.text(label, margin, y);
+    y += 12;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...dark);
+    const lines = doc.splitTextToSize(value, pageW - margin * 2);
+    doc.text(lines, margin, y);
+    y += lines.length * 13 + 14;
+  }
+
+  if (data.diagnosticActions || data.proposedSolution) {
+    sectionHeader('Assessment');
+    textBlock('Diagnostic Actions', data.diagnosticActions);
+    textBlock('Proposed Solution', data.proposedSolution);
+    doc.setDrawColor(200, 210, 230);
+    doc.line(margin, y, pageW - margin, y);
+    y += 16;
+  }
+
+  if (data.materials && data.materials.length > 0) {
+    sectionHeader('Materials');
+
+    // Table header
+    const cols = { desc: margin, qty: 290, unit: 340, price: 400, total: 470 };
+    doc.setFillColor(...light);
+    doc.rect(margin, y - 10, pageW - margin * 2, 18, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...muted);
+    doc.text('DESCRIPTION', cols.desc, y);
+    doc.text('QTY', cols.qty, y);
+    doc.text('UNIT', cols.unit, y);
+    doc.text('UNIT PRICE', cols.price, y);
+    doc.text('TOTAL', cols.total, y);
+    y += 10;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    data.materials.forEach((row, i) => {
+      if (i % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y - 10, pageW - margin * 2, 16, 'F');
+      }
+      doc.setTextColor(...dark);
+      doc.text(row.desc || '—', cols.desc, y, { maxWidth: 230 });
+      doc.text(String(row.qty), cols.qty, y);
+      doc.text(row.unit, cols.unit, y);
+      doc.text(`$${row.price.toFixed(2)}`, cols.price, y);
+      doc.text(`$${row.total.toFixed(2)}`, cols.total, y);
+      y += 16;
+    });
+
+    // Totals
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...muted);
+    doc.text('Materials Subtotal:', 360, y);
+    doc.setTextColor(...dark);
+    doc.text(formatMoney(data.materialsTotal), 470, y);
+    y += 13;
+
+    if (data.laborHours > 0) {
+      doc.setTextColor(...muted);
+      const lDesc = data.laborDesc ? `Labor (${data.laborDesc} · ${data.laborHours}h @ $${LABOR_RATE}/hr):` : `Labor (${data.laborHours}h @ $${LABOR_RATE}/hr):`;
+      doc.text(lDesc, 260, y, { maxWidth: 200, align: 'right' });
+      doc.setTextColor(...dark);
+      doc.text(formatMoney(data.laborCost), 470, y);
+      y += 13;
+    }
+
+    doc.setFillColor(...navy);
+    doc.rect(350, y - 10, pageW - margin - 350, 20, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...white);
+    doc.text('TOTAL COST', 360, y + 4);
+    doc.text(formatMoney(data.grandTotal), 470, y + 4);
+    y += 24;
+
+    doc.setDrawColor(200, 210, 230);
+    doc.line(margin, y, pageW - margin, y);
+    y += 16;
+  }
+
+  if (data.completionNotes) {
+    sectionHeader('Completion Notes');
+    textBlock('', data.completionNotes);
+  }
+
+  // Footer
+  const pageH = doc.internal.pageSize.getHeight();
+  doc.setFontSize(8);
+  doc.setTextColor(...muted);
+  doc.text('Triangle Renovations · trianglerenovations.com', margin, pageH - 20);
+  doc.text(`Generated ${new Date().toLocaleString()}`, pageW - margin, pageH - 20, { align: 'right' });
+
+  return doc.output('arraybuffer');
+}
+
+// ─── SUBMIT ───────────────────────────────────────────────────────────
+async function submitForm() {
+  if (!validate()) return;
+
+  const data = collectData();
+  const btn = document.getElementById('btnSubmit');
+  const statusBar = document.getElementById('statusBar');
+  btn.disabled = true;
+  statusBar.className = 'status-bar visible';
+
+  function setStep(id, state) {
+    const el = document.getElementById(id);
+    el.className = `status-step ${state}`;
+  }
+
+  try {
+    // STEP 1 — Monday.com
+    setStep('step-monday', 'active');
+    const mondayResult = await createMondayItem(data);
+    const mondayItemId = mondayResult?.data?.create_item?.id;
+    setStep('step-monday', 'done');
+
+    // STEP 2 — PDF
+    setStep('step-pdf', 'active');
+    const pdfBuffer = await generatePDF(data);
+    if (mondayItemId) {
+      await uploadFilesToMonday(mondayItemId, [{
+        file: new File([pdfBuffer], `WO-${data.address.replace(/[^a-z0-9]/gi,'_').slice(0,30)}_${Date.now()}.pdf`, { type: 'application/pdf' }),
+        columnId: 'files' // Will be mapped by submit.js
+      }], 'pdf');
+    }
+    setStep('step-pdf', 'done');
+
+    // STEP 3 — Photos + Docs
+    setStep('step-photos', 'active');
+    if (attachedFiles.length > 0 && mondayItemId) {
+      await uploadFilesToMonday(mondayItemId, attachedFiles.map(e => ({ file: e.file })), 'photos');
+    }
+    setStep('step-photos', 'done');
+
+    statusBar.className = 'status-bar visible success';
+    statusBar.innerHTML = '✓ Work order submitted successfully.';
+    btn.textContent = 'Submitted';
+
+  } catch (err) {
+    console.error(err);
+    statusBar.className = 'status-bar visible error';
+    statusBar.innerHTML = `✗ Submission error: ${err.message}`;
+    btn.disabled = false;
+    btn.textContent = 'Retry Submit';
+  }
+}
+
+async function createMondayItem(data) {
+  const isEstimate  = data.visitType === 'Estimate' || data.visitType === 'Completed on Initial Visit (Under NTE)';
+  const isCompleted = data.visitType === 'Completed on Initial Visit (Under NTE)' || data.visitType === 'Completed After Estimate Approved';
+
+  // Build materials text
+  let materialsText = '';
+  if (data.materials && data.materials.length > 0) {
+    materialsText = data.materials
+      .filter(r => r.desc)
+      .map(r => `${r.desc} - ${r.qty} ${r.unit} @ $${r.price.toFixed(2)} = $${r.total.toFixed(2)}`)
+      .join('\n');
+  }
+
+  const payload = {
+    address:            data.address,
+    techName:           data.techName,
+    visitType:          data.visitType,
+    date:               data.date,
+    diagnosticActions:  isEstimate  ? data.diagnosticActions : undefined,
+    proposedSolution:   isEstimate  ? data.proposedSolution  : undefined,
+    materialsText:      isEstimate  ? materialsText          : undefined,
+    materialsTotal:     isEstimate  ? data.materialsTotal    : undefined,
+    laborHours:         isEstimate  ? data.laborHours        : undefined,
+    laborCost:          isEstimate  ? data.laborCost         : undefined,
+    grandTotal:         isEstimate  ? data.grandTotal        : undefined,
+    completionNotes:    isCompleted ? data.completionNotes   : undefined,
+  };
+
+  const resp = await fetch('/.netlify/functions/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Monday API error: ${text}`);
+  }
+  return resp.json();
+}
+
+async function uploadFilesToMonday(itemId, files, type) {
+  const formData = new FormData();
+  formData.append('itemId', itemId);
+  formData.append('type', type);
+  files.forEach((entry, i) => {
+    formData.append(`file_${i}`, entry.file, entry.file.name);
+  });
+
+  const resp = await fetch('/.netlify/functions/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Upload error: ${text}`);
+  }
+  return resp.json();
+}
+</script>
+</body>
+</html>
