@@ -1122,29 +1122,61 @@ async function createMondayItem(data) {
   return resp.json();
 }
 
-async function uploadFilesToMonday(itemId, files, type) {
-  const encoded = await Promise.all(files.map(async (entry) => {
-    const file = entry.file;
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    return { name: file.name, mimetype: file.type || 'application/octet-stream', data: base64 };
-  }));
-
-  const resp = await fetch('/.netlify/functions/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemId, type, files: encoded }),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error('Upload error: ' + text);
+async function fileToBase64(file, compress) {
+  if (compress && file.type.startsWith('image/')) {
+    return await compressImage(file);
   }
-  return resp.json();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressImage(file) {
+  return await new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const data = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
+      resolve(data);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+async function uploadFilesToMonday(itemId, files, type) {
+  for (const entry of files) {
+    const file = entry.file;
+    const isImage = file.type.startsWith('image/');
+    const data = await fileToBase64(file, isImage);
+    const mimetype = isImage ? 'image/jpeg' : (file.type || 'application/octet-stream');
+    const name = isImage ? file.name.replace(/\.[^.]+$/, '.jpg') : file.name;
+
+    const resp = await fetch('/.netlify/functions/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId, type, name, mimetype, data }),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error('Upload error: ' + text);
+    }
+  }
+  return { success: true };
 }
 </script>
 </body>
