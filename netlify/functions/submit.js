@@ -79,7 +79,7 @@ exports.handler = async (event) => {
   setCol('labor (hour', laborHours);
   setCol('total cost', grandTotal);
   setCol('completion note', completionNotes);
-  setCol('maintenance item', `${address} - ${techName}`);
+  // Maintenance Item is a board-relation column — skipped (manual)
 
   // Date Received
   const dateCol = boardColumns.find(c =>
