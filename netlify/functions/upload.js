@@ -1,5 +1,5 @@
 // netlify/functions/upload.js
-// Uploads PDF report and photos/documents to Monday.com Files columns
+// Uploads PDF and photos/documents to Monday.com — no external dependencies
 
 const MONDAY_API_KEY = process.env.MONDAY_API_KEY;
 const BOARD_ID = '5979872405';
@@ -9,42 +9,38 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // Netlify provides multipart body as base64
   const contentType = event.headers['content-type'] || '';
   if (!contentType.includes('multipart/form-data')) {
     return { statusCode: 400, body: 'Expected multipart/form-data' };
   }
 
-  // Parse multipart manually using busboy
-  const busboy = require('busboy');
-  const bb = busboy({ headers: { 'content-type': contentType } });
+  // Parse multipart manually — no busboy needed
+  const boundary = contentType.split('boundary=')[1];
+  if (!boundary) {
+    return { statusCode: 400, body: 'Missing boundary in content-type' };
+  }
+
+  const bodyBuffer = event.isBase64Encoded
+    ? Buffer.from(event.body, 'base64')
+    : Buffer.from(event.body, 'binary');
+
+  const parts = parseMultipart(bodyBuffer, boundary);
 
   const fields = {};
   const files = [];
 
-  await new Promise((resolve, reject) => {
-    bb.on('field', (name, value) => { fields[name] = value; });
-    bb.on('file', (name, stream, info) => {
-      const chunks = [];
-      stream.on('data', chunk => chunks.push(chunk));
-      stream.on('end', () => {
-        files.push({
-          fieldname: name,
-          filename: info.filename,
-          mimetype: info.mimeType,
-          buffer: Buffer.concat(chunks),
-        });
+  for (const part of parts) {
+    if (!part.filename) {
+      fields[part.name] = part.data.toString('utf8');
+    } else {
+      files.push({
+        fieldname: part.name,
+        filename: part.filename,
+        mimetype: part.contentType || 'application/octet-stream',
+        buffer: part.data,
       });
-    });
-    bb.on('close', resolve);
-    bb.on('error', reject);
-
-    const body = event.isBase64Encoded
-      ? Buffer.from(event.body, 'base64')
-      : Buffer.from(event.body);
-    bb.write(body);
-    bb.end();
-  });
+    }
+  }
 
   const { itemId, type } = fields;
 
@@ -52,9 +48,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: 'Missing itemId' };
   }
 
-  // Determine which column to upload to
-  // type === 'pdf'    → use the Files column just right of Total Cost (user will set this)
-  // type === 'photos' → use the Photos column
+  // Look up board columns to find target column
   let columnId;
   try {
     const colResp = await fetch('https://api.monday.com/v2', {
@@ -72,13 +66,9 @@ exports.handler = async (event) => {
     const columns = colData?.data?.boards?.[0]?.columns || [];
 
     if (type === 'pdf') {
-      // Find the files column just right of Total Cost
-      // User will rename it to something like "WO Report" or "Client Doc"
-      // We look for a file-type column that matches likely names
       const pdfCol = columns.find(c =>
         c.type === 'file' && c.title.toLowerCase().includes('pdf import')
       );
-      // Fallback: first file column that isn't Photos or Vendor Docs
       const fallback = columns.find(c =>
         c.type === 'file' &&
         !c.title.toLowerCase().includes('photo') &&
@@ -86,7 +76,6 @@ exports.handler = async (event) => {
       );
       columnId = pdfCol?.id || fallback?.id;
     } else {
-      // Photos column
       const photoCol = columns.find(c =>
         c.type === 'file' && c.title.toLowerCase().includes('photo')
       );
@@ -140,3 +129,77 @@ exports.handler = async (event) => {
     body: JSON.stringify({ uploaded: results.length, results }),
   };
 };
+
+// ─── Multipart parser (no dependencies) ──────────────────────────────
+function parseMultipart(buffer, boundary) {
+  const parts = [];
+  const boundaryBuf = Buffer.from('--' + boundary);
+  const nl = Buffer.from('\r\n');
+  const eof = Buffer.from('--' + boundary + '--');
+
+  let pos = 0;
+
+  while (pos < buffer.length) {
+    // Find boundary
+    const boundaryPos = indexOf(buffer, boundaryBuf, pos);
+    if (boundaryPos === -1) break;
+
+    pos = boundaryPos + boundaryBuf.length;
+
+    // Check for end boundary
+    if (buffer.slice(pos, pos + 2).toString() === '--') break;
+
+    // Skip \r\n after boundary
+    if (buffer.slice(pos, pos + 2).toString() === '\r\n') pos += 2;
+
+    // Parse headers
+    const headers = {};
+    while (pos < buffer.length) {
+      const lineEnd = indexOf(buffer, nl, pos);
+      if (lineEnd === -1) break;
+      const line = buffer.slice(pos, lineEnd).toString('utf8');
+      pos = lineEnd + 2;
+      if (line === '') break; // blank line = end of headers
+      const colonIdx = line.indexOf(':');
+      if (colonIdx !== -1) {
+        const key = line.slice(0, colonIdx).trim().toLowerCase();
+        const val = line.slice(colonIdx + 1).trim();
+        headers[key] = val;
+      }
+    }
+
+    // Find next boundary to get data end
+    const nextBoundary = indexOf(buffer, boundaryBuf, pos);
+    if (nextBoundary === -1) break;
+
+    // Data is between pos and nextBoundary - 2 (strip trailing \r\n)
+    const data = buffer.slice(pos, nextBoundary - 2);
+    pos = nextBoundary;
+
+    // Parse content-disposition
+    const disp = headers['content-disposition'] || '';
+    const nameMatch = disp.match(/name="([^"]+)"/);
+    const fileMatch = disp.match(/filename="([^"]+)"/);
+    const contentType = headers['content-type'] || null;
+
+    parts.push({
+      name: nameMatch ? nameMatch[1] : '',
+      filename: fileMatch ? fileMatch[1] : null,
+      contentType,
+      data,
+    });
+  }
+
+  return parts;
+}
+
+function indexOf(buf, search, start = 0) {
+  for (let i = start; i <= buf.length - search.length; i++) {
+    let found = true;
+    for (let j = 0; j < search.length; j++) {
+      if (buf[i + j] !== search[j]) { found = false; break; }
+    }
+    if (found) return i;
+  }
+  return -1;
+}
